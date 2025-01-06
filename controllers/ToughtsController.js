@@ -12,57 +12,59 @@ module.exports = class ToughtController {
       search = req.query.search;
     }
 
-    let order = "DESC";
-
+    let order = -1; // Valor padrão para DESC
     if (req.query.order === "old") {
-      order = "ASC";
-    } else {
-      order = "DESC";
+      order = 1; // Se 'old' for passado, a ordenação será ASC
     }
 
-    const toughtsData = await Tought.findAll({
-      include: User,
-      where: {
-        title: { [Op.like]: `%${search}%` },
-      },
-      order: [["createdAt", order]],
-    });
+    try {
+      const toughtsData = await Tought.find({
+        title: { $regex: search, $options: "i" },
+      })
+        .sort({ createdAt: order }) // Passa diretamente o valor de 'order'
+        .populate("userId");
 
-    const toughts = toughtsData.map((result) => result.get({ plain: true }));
+      if (!toughtsData || toughtsData.length === 0) {
+        return res.render("layouts/toughts/home", {
+          toughts: [],
+          search,
+          toughtsQty: false,
+        });
+      }
 
-    let toughtsQty = toughts.length;
+      const toughtsQty = toughtsData.length;
 
-    if (toughtsQty === 0) {
-      toughtsQty = false;
+      res.render("layouts/toughts/home", {
+        toughts: toughtsData,
+        search,
+        toughtsQty,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Erro ao buscar pensamentos");
     }
-
-    res.render("layouts/toughts/home", { toughts, search, toughtsQty });
   }
 
   static async dashboard(req, res) {
-    const userId = req.session.userid;
+    try {
+      const user = await User.findById(req.session.userid).populate("toughts");
 
-    const user = await User.findOne({
-      where: {
-        id: userId,
-      },
-      include: Tought,
-      plain: true,
-    });
-    //verifica se user está logado
-    if (!user) {
-      res.redirect("login");
+      if (!user) {
+        req.flash("message", "Usuário não encontrado!");
+        return res.redirect("/");
+      }
+
+      const toughts = user.toughts || [];
+
+      res.render("layouts/toughts/dashboard", {
+        toughts,
+        emptyToughts: toughts.length === 0,
+      });
+    } catch (error) {
+      console.error("Erro ao carregar pensamentos:", error);
+      req.flash("message", "Erro ao carregar seus pensamentos.");
+      res.redirect("/");
     }
-
-    const toughts = user.Toughts.map((result) => result.dataValues);
-
-    let emptyToughts = false;
-
-    if (toughts.length === 0) {
-      emptyToughts = true;
-    }
-
-    res.render("layouts/toughts/dashboard", { toughts, emptyToughts });
   }
 
   static createTought(req, res) {
@@ -70,7 +72,7 @@ module.exports = class ToughtController {
   }
 
   static async createToughtSave(req, res) {
-    console.log("User ID na sessão:", req.session.userid); // Para verificar se o ID está presente
+    console.log("User ID na sessão:", req.session.userid);
 
     const tought = {
       title: req.body.title,
@@ -78,39 +80,53 @@ module.exports = class ToughtController {
     };
 
     try {
-      await Tought.create(tought);
-      req.flash("message", "Pensamento compartilhado com sucesso!");
+      const newTought = await Tought.create(tought);
 
+      await User.findByIdAndUpdate(req.session.userid, {
+        $push: { toughts: newTought._id },
+      });
+
+      req.flash("message", "Pensamento compartilhado com sucesso!");
       req.session.save(() => {
         res.redirect("/toughts/dashboard");
       });
     } catch (err) {
-      console.log("aconteceu um erro:" + err);
+      console.log("Aconteceu um erro:", err);
+      req.flash("message", "Erro ao criar pensamento.");
+      res.redirect("/toughts/dashboard");
     }
   }
 
   static async removeTought(req, res) {
     const id = req.body.id;
-
     const userId = req.session.userid;
 
     try {
-      await Tought.destroy({ where: { id: id, userId: userId } });
+      const result = await Tought.deleteOne({ _id: id, userId: userId });
 
-      req.flash("message", "Pensamento removido com sucesso!");
+      if (result.deletedCount === 0) {
+        req.flash(
+          "message",
+          "Nenhum pensamento encontrado ou você não tem permissão para removê-lo."
+        );
+      } else {
+        req.flash("message", "Pensamento removido com sucesso!");
+      }
 
       req.session.save(() => {
         res.redirect("/toughts/dashboard");
       });
     } catch (err) {
       console.log("aconteceu um erro:" + err);
+      req.flash("message", "Erro ao remover o pensamento.");
+      res.redirect("/toughts/dashboard");
     }
   }
 
   static async updateTought(req, res) {
     const id = req.params.id;
 
-    const tought = await Tought.findOne({ where: { id: id }, raw: true });
+    const tought = await Tought.findById(id);
 
     res.render("layouts/toughts/edit", { tought });
   }
@@ -121,8 +137,16 @@ module.exports = class ToughtController {
     const tought = {
       title: req.body.title,
     };
+
     try {
-      await Tought.update(tought, { where: { id: id } });
+      const updatedTought = await Tought.findByIdAndUpdate(id, tought, {
+        new: true,
+      });
+
+      if (!updatedTought) {
+        req.flash("message", "Pensamento não encontrado!");
+        return res.redirect("/toughts/dashboard");
+      }
 
       req.flash("message", "Pensamento atualizado com sucesso!");
 
@@ -130,7 +154,9 @@ module.exports = class ToughtController {
         res.redirect("/toughts/dashboard");
       });
     } catch (err) {
-      console.log("Erro" + err);
+      console.log("Erro: " + err);
+      req.flash("message", "Erro ao atualizar o pensamento.");
+      res.redirect("/toughts/dashboard");
     }
   }
 };

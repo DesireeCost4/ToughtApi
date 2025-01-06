@@ -12,33 +12,32 @@ module.exports = class Authcontroller {
   static async loginPost(req, res) {
     const { email, password } = req.body;
 
-    //find user
-    const user = await User.findOne({ where: { email: email } });
+    console.log("E-mail enviado:", email);
 
-    if (!user) {
-      req.flash("message", "Usuário não encontrado!");
-      res.render("auth/login");
+    try {
+      const user = await User.findOne({ email: email });
 
-      return;
+      if (!user) {
+        req.flash("message", "Usuário não encontrado!");
+        return res.render("auth/login");
+      }
+
+      const passwordMatch = await bcrypt.compare(password, user.password);
+
+      if (!passwordMatch) {
+        req.flash("message", "Senha inválida");
+        return res.render("auth/login");
+      }
+
+      req.session.userid = user._id;
+      req.flash("message", "Autenticação realizada com sucesso!");
+
+      return res.redirect("/");
+    } catch (error) {
+      console.error("Erro no login:", error);
+      req.flash("message", "Erro ao tentar realizar o login");
+      return res.render("auth/login");
     }
-
-    //check if passwords match
-
-    const passwordMatch = bcrypt.compareSync(password, user.password);
-
-    if (!passwordMatch) {
-      req.flash("message", "Senha inválida");
-      res.render("auth/login");
-
-      return;
-    }
-
-    req.session.userid = user.id;
-    req.flash("message", "Autenticação realizada com sucesso!");
-
-    req.session.save(() => {
-      res.redirect("/");
-    });
   }
 
   static register(req, res) {
@@ -48,28 +47,21 @@ module.exports = class Authcontroller {
   static async registerPost(req, res) {
     const { name, email, password, confirmpassword } = req.body;
 
-    //password
-    if (password != confirmpassword) {
-      //msg
+    if (password !== confirmpassword) {
       req.flash("message", "Senhas não conferem, tente novamente!");
-      res.render("auth/register");
-
-      return;
+      return res.render("auth/register");
     }
 
-    //check if user exists
-    const checkIfUserExists = await User.findOne({ where: { email: email } });
+    // Verificar se o usuário já existe
+    const checkIfUserExists = await User.findOne({ email: email });
 
     if (checkIfUserExists) {
-      req.flash("message", "O e-mail já está em uso! ");
-      res.render("auth/register");
-
-      return;
+      req.flash("message", "O e-mail já está em uso!");
+      return res.render("auth/register");
     }
 
-    //create a password
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync(password, salt);
+    const bcrypt = require("bcryptjs");
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     const user = {
       name,
@@ -80,7 +72,6 @@ module.exports = class Authcontroller {
     try {
       const createdUser = await User.create(user);
 
-      //initialize session
       req.session.userid = createdUser.id;
       req.flash("message", "Cadastro realizado com sucesso!");
 

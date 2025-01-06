@@ -18,6 +18,9 @@ app.engine(
   handlebars.engine({
     defaultLayout: "main",
     extname: ".handlebars",
+    runtimeOptions: {
+      allowProtoPropertiesByDefault: true,
+    },
   })
 );
 
@@ -68,9 +71,8 @@ app.use("/", authRoutes);
 
 app.get("/", ToughtController.showToughts);
 
-conn
-  .sync()
-  .then(() => {
-    app.listen(3000, () => console.log("servidor rodando na porta 3000"));
-  })
-  .catch((err) => console.log("erro ao conectar" + err));
+const port = 3000;
+
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
+});

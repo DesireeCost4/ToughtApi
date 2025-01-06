@@ -1,15 +1,20 @@
-const { Sequelize } = require("sequelize");
+const mongoose = require("mongoose");
 
-const sequelize = new Sequelize("thougths", "root", "", {
-  host: "localhost",
-  dialect: "mysql",
-});
+const mongoURI =
+  "mongodb+srv://desiree:lKoGgmYxWZBsfZjP@cluster0.tpwg7.mongodb.net/thoughts?retryWrites=true&w=majority"; // Insira sua senha do MongoDB
 
-try {
-  sequelize.authenticate();
-  console.log("Conectamos com sucesso! ");
-} catch (err) {
-  console.log(`Não foi possível conectar: ${err}`);
+async function connectDB() {
+  try {
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("Conectamos com sucesso ao MongoDB Atlas!");
+  } catch (err) {
+    console.log(`Não foi possível conectar ao MongoDB: ${err}`);
+  }
 }
 
-module.exports = sequelize;
+connectDB();
+
+module.exports = mongoose;

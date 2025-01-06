@@ -1,25 +1,19 @@
-const { DataTypes } = require("sequelize");
-
-const db = require("../db/conn");
+const mongoose = require("mongoose");
 
 const User = require("./User");
 
-const Tought = db.define("Tought", {
+const ToughtSchema = new mongoose.Schema({
   title: {
-    type: DataTypes.STRING,
-    allowNull: false,
+    type: String,
+    required: true,
   },
   userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: User,
-      key: "id",
-    },
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
   },
 });
 
-Tought.belongsTo(User);
-User.hasMany(Tought);
+const Tought = mongoose.model("Tought", ToughtSchema);
 
 module.exports = Tought;
