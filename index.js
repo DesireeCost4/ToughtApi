@@ -69,13 +69,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/toughts", toughtsRoutes);
-app.use("/", authRoutes);
-
 app.get("/", ToughtController.showToughts);
 
-const port = 3000;
+app.use("/toughts", toughtsRoutes);
+app.use("/auth", authRoutes);
 
+const port = 3000;
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });
