@@ -25,23 +25,24 @@ module.exports = class ToughtController {
         .populate("userId");
 
       if (!toughtsData || toughtsData.length === 0) {
-        return res.render("layouts/toughts/home", {
+        return res.status(404).json({
+          message: "Nenhum pensamento encontrado",
           toughts: [],
           search,
-          toughtsQty: false,
+          toughtsQty: 0,
         });
       }
 
       const toughtsQty = toughtsData.length;
 
-      res.render("layouts/toughts/home", {
+      res.json({
         toughts: toughtsData,
         search,
         toughtsQty,
       });
     } catch (error) {
       console.error(error);
-      res.status(500).send("Erro ao buscar pensamentos");
+      res.status(500).json({ error: "Erro ao buscar pensamentos" });
     }
   }
 
@@ -51,24 +52,25 @@ module.exports = class ToughtController {
 
       if (!user) {
         req.flash("message", "Usuário não encontrado!");
-        return res.redirect("/");
+        return res.status(404).json({ message: "Usuário não encontrado!" });
       }
 
       const toughts = user.toughts || [];
 
-      res.render("layouts/toughts/dashboard", {
+      res.json({
         toughts,
         emptyToughts: toughts.length === 0,
       });
     } catch (error) {
       console.error("Erro ao carregar pensamentos:", error);
-      req.flash("message", "Erro ao carregar seus pensamentos.");
-      res.redirect("/");
+      res.status(500).json({ error: "Erro ao carregar seus pensamentos." });
     }
   }
 
   static createTought(req, res) {
-    res.render("layouts/toughts/create");
+    res
+      .status(200)
+      .json({ message: "Aqui você pode criar um novo pensamento." });
   }
 
   static async createToughtSave(req, res) {
@@ -86,14 +88,18 @@ module.exports = class ToughtController {
         $push: { toughts: newTought._id },
       });
 
-      req.flash("message", "Pensamento compartilhado com sucesso!");
       req.session.save(() => {
-        res.redirect("/toughts/dashboard");
+        res.status(201).json({
+          message: "Pensamento compartilhado com sucesso!",
+          tought: newTought,
+        });
       });
     } catch (err) {
       console.log("Aconteceu um erro:", err);
-      req.flash("message", "Erro ao criar pensamento.");
-      res.redirect("/toughts/dashboard");
+      res.status(500).json({
+        message: "Erro ao criar pensamento.",
+        error: err.message,
+      });
     }
   }
 
@@ -105,30 +111,48 @@ module.exports = class ToughtController {
       const result = await Tought.deleteOne({ _id: id, userId: userId });
 
       if (result.deletedCount === 0) {
-        req.flash(
-          "message",
-          "Nenhum pensamento encontrado ou você não tem permissão para removê-lo."
-        );
+        return res.status(400).json({
+          message:
+            "Nenhum pensamento encontrado ou você não tem permissão para removê-lo.",
+        });
       } else {
-        req.flash("message", "Pensamento removido com sucesso!");
+        return res.status(200).json({
+          message: "Pensamento removido com sucesso!",
+        });
       }
-
-      req.session.save(() => {
-        res.redirect("/toughts/dashboard");
-      });
     } catch (err) {
-      console.log("aconteceu um erro:" + err);
-      req.flash("message", "Erro ao remover o pensamento.");
-      res.redirect("/toughts/dashboard");
+      console.log("Aconteceu um erro:", err);
+      return res.status(500).json({
+        message: "Erro ao remover o pensamento.",
+      });
     }
   }
 
   static async updateTought(req, res) {
     const id = req.params.id;
 
-    const tought = await Tought.findById(id);
+    try {
+      // Tentando buscar o pensamento pelo ID
+      const tought = await Tought.findById(id);
 
-    res.render("layouts/toughts/edit", { tought });
+      if (!tought) {
+        return res.status(404).json({
+          message: "Pensamento não encontrado.",
+        });
+      }
+
+      // Caso o pensamento seja encontrado, envia os dados do pensamento para o frontend
+      return res.status(200).json({
+        tought,
+      });
+    } catch (error) {
+      // Caso ocorra algum erro
+      console.error("Erro ao buscar pensamento:", error);
+      return res.status(500).json({
+        message: "Erro ao buscar pensamento.",
+        error: error.message,
+      });
+    }
   }
 
   static async updateToughtSave(req, res) {
@@ -144,19 +168,26 @@ module.exports = class ToughtController {
       });
 
       if (!updatedTought) {
-        req.flash("message", "Pensamento não encontrado!");
-        return res.redirect("/toughts/dashboard");
+        return res.status(404).json({
+          message: "Pensamento não encontrado!",
+        });
       }
 
       req.flash("message", "Pensamento atualizado com sucesso!");
 
       req.session.save(() => {
-        res.redirect("/toughts/dashboard");
+        return res.status(200).json({
+          message: "Pensamento atualizado com sucesso!",
+          tought: updatedTought,
+        });
       });
     } catch (err) {
+      // Caso ocorra algum erro, retorna erro 500
       console.log("Erro: " + err);
-      req.flash("message", "Erro ao atualizar o pensamento.");
-      res.redirect("/toughts/dashboard");
+      return res.status(500).json({
+        message: "Erro ao atualizar o pensamento.",
+        error: err.message,
+      });
     }
   }
 };

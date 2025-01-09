@@ -13,6 +13,9 @@ const toughtsRoutes = require("./routes/toughtsRoutes");
 const authRoutes = require("./routes/authRoutes");
 const ToughtController = require("./controllers/ToughtsController");
 
+const cors = require("cors");
+app.use(cors());
+
 app.engine(
   "handlebars",
   handlebars.engine({

@@ -6,7 +6,7 @@ const { where } = require("sequelize");
 
 module.exports = class Authcontroller {
   static login(req, res) {
-    res.render("auth/login");
+    res.json({ message: "Por favor realize login, aqui: " });
   }
 
   static async loginPost(req, res) {
@@ -18,30 +18,36 @@ module.exports = class Authcontroller {
       const user = await User.findOne({ email: email });
 
       if (!user) {
-        req.flash("message", "Usuário não encontrado!");
-        return res.render("auth/login");
+        return res.status(404).json({ message: "Usuário não encontrado!" });
       }
 
       const passwordMatch = await bcrypt.compare(password, user.password);
 
       if (!passwordMatch) {
-        req.flash("message", "Senha inválida");
-        return res.render("auth/login");
+        return res.status(401).json({ message: "Senha inválida" });
       }
 
-      req.session.userid = user._id;
-      req.flash("message", "Autenticação realizada com sucesso!");
+      const token = jwt.sign({ id: user.id }, "seu_segredo", {
+        expiresIn: "1h",
+      });
 
-      return res.redirect("/");
+      return res.status(200).json({
+        message: "Autenticação realizada com sucesso!",
+        token,
+      });
     } catch (error) {
       console.error("Erro no login:", error);
       req.flash("message", "Erro ao tentar realizar o login");
-      return res.render("auth/login");
+      return res
+        .status(500)
+        .json({ message: "Erro ao tentar realizar o login" });
     }
   }
 
   static register(req, res) {
-    res.render("auth/register");
+    res
+      .status(200)
+      .json({ message: "Por favor, forneça seus dados para registro." });
   }
 
   static async registerPost(req, res) {
@@ -49,7 +55,7 @@ module.exports = class Authcontroller {
 
     if (password !== confirmpassword) {
       req.flash("message", "Senhas não conferem, tente novamente!");
-      return res.render("auth/register");
+      return res.status(400).json({ error: "As senhas não coincidem!" });
     }
 
     // Verificar se o usuário já existe
@@ -57,7 +63,7 @@ module.exports = class Authcontroller {
 
     if (checkIfUserExists) {
       req.flash("message", "O e-mail já está em uso!");
-      return res.render("auth/register");
+      return res.status(400).json({ error: "O e-mail já está em uso!" });
     }
 
     const bcrypt = require("bcryptjs");
@@ -80,11 +86,16 @@ module.exports = class Authcontroller {
       });
     } catch (err) {
       console.error("Erro ao criar o usuário:", err);
+      return res.status(500).json({ error: "Erro ao criar o usuário" });
     }
   }
 
   static logout(req, res) {
-    req.session.destroy();
-    res.redirect("/login");
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Erro ao realizar logout" });
+      }
+      return res.json({ message: "Logout realizado com sucesso!" });
+    });
   }
 };
