@@ -69,6 +69,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/", (req, res) => {
+  res.send("Bem-vindo à API de Pensamentos");
+});
+
 app.get("/", ToughtController.showToughts);
 
 app.use("/toughts", toughtsRoutes);
