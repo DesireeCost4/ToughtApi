@@ -18,7 +18,7 @@ const { checkAuth } = require("./helpers/auth");
 
 app.use(
   cors({
-    origin: "http://localhost:4200", // Permitir a origem do Angular
+    origin: "hhttps://thought-front-end.vercel.app/", // Permitir a origem do Angular
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Métodos aceitos
     allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos permitidos
     credentials: true, // Para cookies ou autenticação de sessão, se necessário
