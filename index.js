@@ -8,7 +8,6 @@ const conn = require("./db/conn");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
-//models
 const Tought = require("./models/Tought");
 const User = require("./models/User");
 const toughtsRoutes = require("./routes/toughtsRoutes");
@@ -18,21 +17,24 @@ const { checkAuth } = require("./helpers/auth");
 
 app.use(
   cors({
-    origin: "hhttps://thought-front-end.vercel.app/", // Permitir a origem do Angular
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Métodos aceitos
-    allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos permitidos
-    credentials: true, // Para cookies ou autenticação de sessão, se necessário
+    origin: "https://thought-front-end.vercel.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
 app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:4200");
+  res.header(
+    "Access-Control-Allow-Origin",
+    "https://thought-front-end.vercel.app"
+  );
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.sendStatus(200); // Responde OK
+  res.sendStatus(200);
 });
 
-app.use(bodyParser.json()); // Para parsear o corpo das requisições
+app.use(bodyParser.json());
 
 app.engine(
   "handlebars",
@@ -66,18 +68,18 @@ app.use(
       path: require("path").join(require("os").tmpdir(), "sessions"),
     }),
     cookie: {
-      secure: false,
+      secure: true,
       maxAge: 3600000,
       expires: new Date(Date.now() + 3600000),
       httpOnly: true,
+      sameSite: "none",
       path: "/",
     },
   })
 );
 
-//msg flash
 app.use(flash());
-//public
+
 app.use(express.static("public"));
 
 app.get("/", (req, res) => {
