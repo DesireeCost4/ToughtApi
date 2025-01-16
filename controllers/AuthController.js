@@ -1,46 +1,55 @@
 const flash = require("express-flash");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
 const bcrypt = require("bcryptjs");
 const { where } = require("sequelize");
 
 module.exports = class Authcontroller {
-  static login(req, res) {
-    res.json({ message: "Por favor realize login, aqui: " });
-  }
-
-  static async loginPost(req, res) {
-    const { email, password } = req.body;
-
-    console.log("E-mail enviado:", email);
+  static async login(req, res) {
+    console.log("SESSION LOGIN!!! COMEÇO DO LOGIN " + req.session);
 
     try {
-      const user = await User.findOne({ email: email });
+      const { email, password } = req.body;
 
-      if (!user) {
-        return res.status(404).json({ message: "Usuário não encontrado!" });
+      const user = await User.findOne({ email });
+
+      console.log("estou no try");
+
+      if (user && bcrypt.compareSync(password, user.password)) {
+        req.session.userid = user._id.toString();
+
+        const sessionUser = req.session.userid;
+        console.log("UserId armazenado:", sessionUser);
+
+        console.log("SESSION DENTRO DO TRY: " + sessionUser);
+        console.log("esse é o req.session.userid: " + user._id);
+
+        const token = jwt.sign({ userId: user._id }, "seuSegredoAqui", {
+          expiresIn: "1h",
+        });
+
+        console.log("token no try: " + token);
+
+        req.session.save((err) => {
+          if (err) {
+            console.error("Erro ao salvar a sessão:", err);
+            return res.status(500).json({ message: "Erro ao salvar a sessão" });
+          }
+
+          console.log("Sessão salva com sucesso, ID:", req.session.userid);
+          console.log("na sessão salva: " + user.email);
+          return res.status(200).json({
+            message: "Login realizado com sucesso!",
+            token,
+          });
+        });
+      } else {
+        return res.status(400).json({ message: "Credenciais inválidas!" });
       }
-
-      const passwordMatch = await bcrypt.compare(password, user.password);
-
-      if (!passwordMatch) {
-        return res.status(401).json({ message: "Senha inválida" });
-      }
-
-      const token = jwt.sign({ id: user.id }, "seu_segredo", {
-        expiresIn: "1h",
-      });
-
-      return res.status(200).json({
-        message: "Autenticação realizada com sucesso!",
-        token,
-      });
-    } catch (error) {
-      console.error("Erro no login:", error);
-      req.flash("message", "Erro ao tentar realizar o login");
-      return res
-        .status(500)
-        .json({ message: "Erro ao tentar realizar o login" });
+    } catch (err) {
+      console.error("Erro ao autenticar:", err);
+      res.status(500).send("Erro ao autenticar usuário: " + err);
     }
   }
 
@@ -91,11 +100,26 @@ module.exports = class Authcontroller {
   }
 
   static logout(req, res) {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ error: "Erro ao realizar logout" });
-      }
-      return res.json({ message: "Logout realizado com sucesso!" });
-    });
+    try {
+      console.log("Iniciando logout");
+      console.log("Sessão antes do logout:", req.session);
+
+      req.session.userid = null;
+
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Erro ao destruir a sessão:", err);
+          return res.status(500).json({ message: "Erro ao destruir a sessão" });
+        }
+        console.log("SESSÃO APÓS LOGOUT: " + req.session);
+
+        return res
+          .status(200)
+          .json({ message: "Logout realizado com sucesso!" });
+      });
+    } catch (err) {
+      console.error("Erro no logout:", err);
+      res.status(500).send("Erro no logout: " + err);
+    }
   }
 };

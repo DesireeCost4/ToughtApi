@@ -5,6 +5,8 @@ const FileStore = require("session-file-store")(session);
 const flash = require("express-flash");
 const app = express();
 const conn = require("./db/conn");
+const bodyParser = require("body-parser");
+const cors = require("cors");
 
 //models
 const Tought = require("./models/Tought");
@@ -12,9 +14,25 @@ const User = require("./models/User");
 const toughtsRoutes = require("./routes/toughtsRoutes");
 const authRoutes = require("./routes/authRoutes");
 const ToughtController = require("./controllers/ToughtsController");
+const { checkAuth } = require("./helpers/auth");
 
-const cors = require("cors");
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:4200", // Permitir a origem do Angular
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Métodos aceitos
+    allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos permitidos
+    credentials: true, // Para cookies ou autenticação de sessão, se necessário
+  })
+);
+
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", "http://localhost:4200");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.sendStatus(200); // Responde OK
+});
+
+app.use(bodyParser.json()); // Para parsear o corpo das requisições
 
 app.engine(
   "handlebars",
@@ -42,17 +60,17 @@ app.use(
     name: "session",
     secret: "nosso_secret",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     store: new FileStore({
       logFn: function () {},
       path: require("path").join(require("os").tmpdir(), "sessions"),
     }),
-
     cookie: {
       secure: false,
       maxAge: 3600000,
       expires: new Date(Date.now() + 3600000),
       httpOnly: true,
+      path: "/",
     },
   })
 );
@@ -61,21 +79,12 @@ app.use(
 app.use(flash());
 //public
 app.use(express.static("public"));
-//session res.
-app.use((req, res, next) => {
-  if (req.session.userid) {
-    res.locals.session = req.session;
-  }
-  next();
-});
 
 app.get("/", (req, res) => {
   res.send("Bem-vindo à API de Pensamentos");
 });
 
-app.get("/", ToughtController.showToughts);
-
-app.use("/toughts", toughtsRoutes);
+app.use("/toughts", checkAuth, toughtsRoutes);
 app.use("/auth", authRoutes);
 
 const port = 3000;

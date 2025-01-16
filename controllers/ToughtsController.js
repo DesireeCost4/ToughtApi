@@ -1,27 +1,25 @@
 const { where } = require("sequelize");
 const Tought = require("../models/Tought");
+const ToughtModel = require("../models/Tought");
 const User = require("../models/User");
-
 const { Op } = require("sequelize");
+const ObjectId = require("mongoose").Types.ObjectId;
+const mongoose = require("mongoose");
+
+const checkAuth = require("../models/User");
 
 module.exports = class ToughtController {
+  //
   static async showToughts(req, res) {
-    let search = "";
-
-    if (req.query.search) {
-      search = req.query.search;
-    }
-
-    let order = -1; // Valor padrão para DESC
-    if (req.query.order === "old") {
-      order = 1; // Se 'old' for passado, a ordenação será ASC
-    }
+    const search = req.query.search || "";
+    const order = req.query.order || "desc"; // Valor padrão para ordenação
 
     try {
+      // Certificando-se de que o `search` é uma string válida
       const toughtsData = await Tought.find({
-        title: { $regex: search, $options: "i" },
+        title: { $regex: search, $options: "i" }, // Pesquisa com case-insensitive
       })
-        .sort({ createdAt: order }) // Passa diretamente o valor de 'order'
+        .sort({ createdAt: order }) // Ordenação pela data de criação
         .populate("userId");
 
       if (!toughtsData || toughtsData.length === 0) {
@@ -41,54 +39,102 @@ module.exports = class ToughtController {
         toughtsQty,
       });
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao buscar pensamentos:", error);
       res.status(500).json({ error: "Erro ao buscar pensamentos" });
     }
   }
 
   static async dashboard(req, res) {
     try {
-      const user = await User.findById(req.session.userid).populate("toughts");
+      const user = await User.findById(req.userId).populate("toughts");
 
       if (!user) {
-        req.flash("message", "Usuário não encontrado!");
-        return res.status(404).json({ message: "Usuário não encontrado!" });
+        console.log(user);
+        console.log(user);
+        return res.status(404).json({ message: "Usuário não encontrado" });
       }
 
       const toughts = user.toughts || [];
+      const name = user.name;
+      const email = user.email;
+      const createdAt = new Date();
 
-      res.json({
+      const allToughts = await Tought.find().populate("userId");
+
+      return res.json({
         toughts,
+        allToughts,
         emptyToughts: toughts.length === 0,
+        name,
+        email,
+        createdAt,
       });
     } catch (error) {
       console.error("Erro ao carregar pensamentos:", error);
-      res.status(500).json({ error: "Erro ao carregar seus pensamentos." });
+      return res
+        .status(500)
+        .json({ message: "Erro ao carregar seus pensamentos." });
+    }
+  }
+
+  static async profile(req, res) {
+    try {
+      const user = await User.findById(req.userId).populate("toughts");
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      const toughts = user.toughts || [];
+      console.log("Pensamentos do usuário:", user.toughts);
+
+      const name = user.name;
+      const email = user.email;
+      const createdAt = new Date();
+      console.log(toughts);
+      return res.json({
+        toughts,
+        emptyToughts: toughts.length === 0,
+        name,
+        email,
+        createdAt,
+      });
+    } catch (error) {
+      console.error("Erro ao carregar pensamentos:", error);
+      return res
+        .status(500)
+        .json({ message: "Erro ao carregar seus pensamentos." });
     }
   }
 
   static createTought(req, res) {
-    res
-      .status(200)
-      .json({ message: "Aqui você pode criar um novo pensamento." });
+    return res.status(200).json({ message: "Você criou um novo post!" });
   }
 
   static async createToughtSave(req, res) {
-    console.log("User ID na sessão:", req.session.userid);
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "usuário não foi encontrado // if no toughtcontroler",
+      });
+    }
 
     const tought = {
       title: req.body.title,
-      userId: req.session.userid,
+      userId: req.userId,
     };
 
     try {
       const newTought = await Tought.create(tought);
 
-      await User.findByIdAndUpdate(req.session.userid, {
+      await User.findByIdAndUpdate(req.userId, {
         $push: { toughts: newTought._id },
       });
 
-      req.session.save(() => {
+      console.log("o titulo precisa estar aqui: " + tought.title);
+
+      return req.session.save(() => {
         res.status(201).json({
           message: "Pensamento compartilhado com sucesso!",
           tought: newTought,
@@ -96,7 +142,7 @@ module.exports = class ToughtController {
       });
     } catch (err) {
       console.log("Aconteceu um erro:", err);
-      res.status(500).json({
+      return res.status(500).json({
         message: "Erro ao criar pensamento.",
         error: err.message,
       });
@@ -104,49 +150,48 @@ module.exports = class ToughtController {
   }
 
   static async removeTought(req, res) {
-    const id = req.body.id;
-    const userId = req.session.userid;
+    const user = await User.findById(req.userId).populate("toughts");
+
+    const { id } = req.params;
 
     try {
-      const result = await Tought.deleteOne({ _id: id, userId: userId });
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "ID inválido!" });
+      }
 
-      if (result.deletedCount === 0) {
-        return res.status(400).json({
-          message:
-            "Nenhum pensamento encontrado ou você não tem permissão para removê-lo.",
-        });
-      } else {
-        return res.status(200).json({
-          message: "Pensamento removido com sucesso!",
+      const tought = await ToughtModel.findById(id);
+
+      if (!tought) {
+        return res.status(404).json({ message: "Pensamento não encontrado!" });
+      }
+
+      if (tought.userId.toString() !== req.userId) {
+        return res.status(403).json({
+          message: "Você não tem permissão para deletar este pensamento.",
         });
       }
-    } catch (err) {
-      console.log("Aconteceu um erro:", err);
-      return res.status(500).json({
-        message: "Erro ao remover o pensamento.",
-      });
+
+      await ToughtModel.findByIdAndDelete(id);
+      res.status(200).json({ message: "Pensamento deletado com sucesso!" });
+    } catch (error) {
+      console.error("Erro ao deletar pensamento:", error);
+      res.status(500).json({ message: "Erro interno ao deletar pensamento." });
     }
   }
 
   static async updateTought(req, res) {
     const id = req.params.id;
-
     try {
-      // Tentando buscar o pensamento pelo ID
       const tought = await Tought.findById(id);
-
       if (!tought) {
         return res.status(404).json({
           message: "Pensamento não encontrado.",
         });
       }
-
-      // Caso o pensamento seja encontrado, envia os dados do pensamento para o frontend
       return res.status(200).json({
         tought,
       });
     } catch (error) {
-      // Caso ocorra algum erro
       console.error("Erro ao buscar pensamento:", error);
       return res.status(500).json({
         message: "Erro ao buscar pensamento.",
@@ -154,7 +199,6 @@ module.exports = class ToughtController {
       });
     }
   }
-
   static async updateToughtSave(req, res) {
     const id = req.body.id;
 
@@ -182,7 +226,6 @@ module.exports = class ToughtController {
         });
       });
     } catch (err) {
-      // Caso ocorra algum erro, retorna erro 500
       console.log("Erro: " + err);
       return res.status(500).json({
         message: "Erro ao atualizar o pensamento.",
