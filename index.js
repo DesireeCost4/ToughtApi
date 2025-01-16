@@ -34,7 +34,7 @@ app.options("*", (req, res) => {
   res.sendStatus(200);
 });
 
-app.use(bodyParser.json());
+app.use(bodyParser.json()); // Para parsear o corpo das requisições
 
 app.engine(
   "handlebars",
@@ -68,18 +68,18 @@ app.use(
       path: require("path").join(require("os").tmpdir(), "sessions"),
     }),
     cookie: {
-      secure: true,
+      secure: false,
       maxAge: 3600000,
       expires: new Date(Date.now() + 3600000),
       httpOnly: true,
-      sameSite: "none",
       path: "/",
     },
   })
 );
 
+//msg flash
 app.use(flash());
-
+//public
 app.use(express.static("public"));
 
 app.get("/", (req, res) => {
