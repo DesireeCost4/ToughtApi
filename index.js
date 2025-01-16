@@ -87,7 +87,7 @@ app.get("/", (req, res) => {
 app.use("/toughts", checkAuth, toughtsRoutes);
 app.use("/auth", authRoutes);
 
-const port = 3000;
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });

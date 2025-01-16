@@ -7,8 +7,6 @@ const { where } = require("sequelize");
 
 module.exports = class Authcontroller {
   static async login(req, res) {
-    console.log("SESSION LOGIN!!! COMEÇO DO LOGIN " + req.session);
-
     try {
       const { email, password } = req.body;
 
@@ -53,29 +51,27 @@ module.exports = class Authcontroller {
     }
   }
 
-  static register(req, res) {
-    res
-      .status(200)
-      .json({ message: "Por favor, forneça seus dados para registro." });
-  }
-
   static async registerPost(req, res) {
     const { name, email, password, confirmpassword } = req.body;
 
+    if (typeof password !== "string") {
+      return res.status(400).json({ error: "A senha deve ser uma string!" });
+    }
+
+    if (!password) {
+      return res.status(400).json({ error: "A senha é obrigatória!" });
+    }
+
     if (password !== confirmpassword) {
-      req.flash("message", "Senhas não conferem, tente novamente!");
       return res.status(400).json({ error: "As senhas não coincidem!" });
     }
 
-    // Verificar se o usuário já existe
     const checkIfUserExists = await User.findOne({ email: email });
 
     if (checkIfUserExists) {
-      req.flash("message", "O e-mail já está em uso!");
       return res.status(400).json({ error: "O e-mail já está em uso!" });
     }
 
-    const bcrypt = require("bcryptjs");
     const hashedPassword = bcrypt.hashSync(password, 10);
 
     const user = {
@@ -88,10 +84,16 @@ module.exports = class Authcontroller {
       const createdUser = await User.create(user);
 
       req.session.userid = createdUser.id;
-      req.flash("message", "Cadastro realizado com sucesso!");
 
-      req.session.save(() => {
-        res.redirect("/");
+      console.log("Cadastro realizado com sucesso!");
+
+      res.status(201).json({
+        message: "Cadastro realizado com sucesso!",
+        user: {
+          name: createdUser.name,
+          email: createdUser.email,
+          id: createdUser.id,
+        },
       });
     } catch (err) {
       console.error("Erro ao criar o usuário:", err);
