@@ -3,19 +3,19 @@
 ToughtsRoutes
 
 
-GET /
-
-https://toughtapi.onrender.com/
-
-Este endpoint faz uma solicitação HTTP GET para recuperar dados de toughtapi.onrender.com 
-Abaixo está o esquema JSON para a resposta:
-json
-{
-  "type": "object",
-  "properties": {
-  
-  }
-}
+	GET /
+	
+	https://toughtapi.onrender.com/
+	
+	Este endpoint faz uma solicitação HTTP GET para recuperar dados de toughtapi.onrender.com 
+	Abaixo está o esquema JSON para a resposta:
+	json
+	{
+	  "type": "object",
+	  "properties": {
+	  
+	  }
+	}
 
 GET DASHBOARD
 
