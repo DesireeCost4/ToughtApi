@@ -9,17 +9,26 @@ const mongoose = require("mongoose");
 const checkAuth = require("../models/User");
 
 module.exports = class ToughtController {
-  //
+  
   static async showToughts(req, res) {
     const search = req.query.search || "";
-    const order = req.query.order || "desc"; // Valor padrão para ordenação
+    const order = req.query.order || "desc";
 
     try {
-      // Certificando-se de que o `search` é uma string válida
+      // Se o parâmetro "search" estiver vazio, retorne uma resposta padrão
+      if (!search.trim()) {
+        return res.status(400).json({
+          message: "Nenhum termo de busca fornecido",
+          toughts: [],
+          search,
+          toughtsQty: 0,
+        });
+      }
+
       const toughtsData = await Tought.find({
-        title: { $regex: search, $options: "i" }, // Pesquisa com case-insensitive
+        title: { $regex: search, $options: "i" },
       })
-        .sort({ createdAt: order }) // Ordenação pela data de criação
+        .sort({ createdAt: order })
         .populate("userId");
 
       if (!toughtsData || toughtsData.length === 0) {
@@ -119,6 +128,8 @@ module.exports = class ToughtController {
         message: "usuário não foi encontrado // if no toughtcontroler",
       });
     }
+
+
 
     const tought = {
       title: req.body.title,
