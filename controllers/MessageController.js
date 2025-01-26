@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User')
+const Message = require('../models/Message');
+
 
 
 
@@ -11,11 +13,22 @@ class MessageController {
 
       console.log(JSON.stringify(req.body, null, 2));
 
-
-      const { content, toUser } = req.body;
       const userId = req.userId; 
-  
-      if (!content || !toUser) {
+      const { content, toUser } = req.body;
+
+      console.log('Requisição recebida:', { userId, toUser, content });
+
+
+      const userExists = await User.findById(userId);
+      console.log('Resultado da busca no banco:', userExists);
+
+      console.log(userExists)
+
+      if (!userExists) {
+        return res.status(404).json({ message: 'Destinatário não encontrado.' });
+      }
+
+      if (!content || !toUser ||!userId) {
         return res.status(400).json({ message: 'Conteúdo e usuário são obrigatórios.' });
       }
 
@@ -40,12 +53,25 @@ class MessageController {
       });
   
       await message.save();
-      res.status(201).json({ message: 'Mensagem enviada com sucesso!' });
+      res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
     } catch (err) {
       console.error('Erro ao criar mensagem:', err);
       res.status(500).json({ message: 'Erro interno do servidor.' });
     }
   }
+
+
+  async getMessages(req, res) {
+    const { userId } = req.params;
+
+    try {
+      const messages = await Message.find({ toUser: userId }).populate('fromUser', 'name email');
+      res.status(200).json(messages);
+    } catch (error) {
+      res.status(500).json({ message: 'Erro ao carregar mensagens' });
+    }
+  }
+
 
 
 }

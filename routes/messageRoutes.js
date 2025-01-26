@@ -5,7 +5,8 @@ const { checkAuth } = require('../helpers/auth');
 
 
 // Rota para criar mensagem
-router.post('/create',checkAuth, messageController.createMessage);
+router.post('/:userId',checkAuth, messageController.createMessage); // Rota para criar mensagens
+router.get('/:userId', messageController.getMessages);
 
 // Rota para listar mensagens
 //router.get('/', messageController.getMessages);

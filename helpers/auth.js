@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 
 module.exports.checkAuth = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1]; // 'Bearer <token>'
+  console.log("Token recebido no backend:", token);
 
   if (!token) {
     return res.status(401).json({ message: "Token não fornecido" });

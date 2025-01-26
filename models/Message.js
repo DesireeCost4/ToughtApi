@@ -1,17 +1,10 @@
+// models/Message.js
 const mongoose = require('mongoose');
 
-const MessageSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,  // Torne o campo obrigatório
-  },
-  userId: {
+const messageSchema = new mongoose.Schema({
+  fromUser: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'User', // Referência ao modelo de usuário
     required: true,
   },
   toUser: {
@@ -19,7 +12,15 @@ const MessageSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  content: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
-const Message = mongoose.model('Message', MessageSchema);
+const Message = mongoose.model('Message', messageSchema);
 module.exports = Message;
