@@ -19,7 +19,7 @@ const  messageRoutes = require('./routes/messageRoutes')
 
 app.use(
   cors({
-    origin: ["http://localhost:4200"], //"https://thought-front-end.vercel.app"],
+    origin: ["http://localhost:4200"], "https://thought-front-end.vercel.app"],
     //methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Métodos aceitos
     allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos permitidos
    // credentials: true, // Para cookies ou autenticação de sessão, se necessário
