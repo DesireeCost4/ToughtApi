@@ -9,68 +9,69 @@ class MessageController {
 
 
   async createMessage(req, res) {
+   
     try {
 
-      console.log(JSON.stringify(req.body, null, 2));
-
-      const userId = req.userId; 
-      const { content, toUser } = req.body;
-
-      console.log('Requisição recebida:', { userId, toUser, content });
-
-
-      const userExists = await User.findById(userId);
-      console.log('Resultado da busca no banco:', userExists);
-
-      console.log(userExists)
-
-      if (!userExists) {
-        return res.status(404).json({ message: 'Destinatário não encontrado.' });
-      }
-
-      if (!content || !toUser ||!userId) {
-        return res.status(400).json({ message: 'Conteúdo e usuário são obrigatórios.' });
-      }
-
-  
-      // Verifica se o usuário existe
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json({ message: 'Usuário não encontrado.' });
-      }
-  
-      // Encontra o destinatário
-      const toUserData = await User.findOne({ username: toUser });
-      if (!toUserData) {
-        return res.status(404).json({ message: 'Destinatário não encontrado.' });
-      }
-  
-      // Cria a mensagem
-      const message = new Message({
-        content: content,
-        fromUser: req.userId, // O userId está sendo retirado do token JWT
-        toUser: toUser
-      });
-  
-      await message.save();
-      res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
-    } catch (err) {
-      console.error('Erro ao criar mensagem:', err);
-      res.status(500).json({ message: 'Erro interno do servidor.' });
-    }
-  }
-
-
-  async getMessages(req, res) {
     const { userId } = req.params;
+    const { toUser, content } = req.body;
+  
+    // Exemplo de busca no banco ou lógica adicional
+    console.log('Usuário autenticado:', req.userId);
+    console.log('Mensagem:', { userId, toUser, content });
+  
 
-    try {
-      const messages = await Message.find({ toUser: userId }).populate('fromUser', 'name email');
-      res.status(200).json(messages);
-    } catch (error) {
-      res.status(500).json({ message: 'Erro ao carregar mensagens' });
+    if (!content || !toUser) {
+      return res.status(400).json({ message: 'Conteúdo e destinatário são obrigatórios.' });
     }
+
+
+    console.log('Buscando destinatário com username:', toUser);
+    const toUserData = await User.findOne({ name: toUser }); 
+    console.log('Resultado da busca:', toUserData);
+    if (!toUserData) {
+      return res.status(404).json({ message: 'Destinatário não encontrado.' });
+    }
+
+    const message = new Message({
+      content: content,
+      fromUser: userId,  
+      toUser: toUserData._id  
+    });
+
+    await message.save();
+    res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao criar mensagem:', err);
+    res.status(500).json({ message: 'Erro interno do servidor.' });
   }
+}
+
+
+
+
+
+
+
+async getMessages(req, res) {
+  try {
+    const { userId } = req.params; // Obtém o userId da URL
+    console.log('Buscando mensagens recebidas para o usuário:', userId);
+
+    // Busca as mensagens onde o usuário é o destinatário (toUser)
+    const messages = await Message.find({ toUser: userId })
+      .populate('fromUser', 'name') // Popula o nome do usuário remetente
+      .populate('toUser', 'name'); // Popula o nome do usuário destinatário
+
+    if (messages.length === 0) {
+      return res.status(404).json({ message: 'Nenhuma mensagem recebida.' });
+    }
+
+    res.status(200).json(messages); // Retorna as mensagens recebidas
+  } catch (err) {
+    console.error('Erro ao buscar mensagens recebidas:', err);
+    res.status(500).json({ message: 'Erro interno do servidor.' });
+  }
+}
 
 
 
