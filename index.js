@@ -16,10 +16,11 @@ const authRoutes = require("./routes/authRoutes");
 const ToughtController = require("./controllers/ToughtsController");
 const { checkAuth } = require("./helpers/auth");
 const  messageRoutes = require('./routes/messageRoutes')
+const friendRoutes = require('./routes/friendRoutes');
 
 app.use(
   cors({
-    origin: "https://thought-front-end.vercel.app", //["http://localhost:4200"], ],
+    origin:  ["http://localhost:4200"], //"https://thought-front-end.vercel.app"
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Métodos aceitos
     allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos permitidos
     credentials: true, // Para cookies ou autenticação de sessão, se necessário
@@ -86,7 +87,7 @@ app.get("/", (req, res) => {
 });
 
 app.use('/messages', messageRoutes);
-
+app.use('/users', friendRoutes);
 app.use("/toughts", checkAuth, toughtsRoutes);
 app.use("/auth", authRoutes);
 

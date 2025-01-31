@@ -9,42 +9,43 @@ class MessageController {
 
 
   async createMessage(req, res) {
-   
     try {
-
-    const { userId } = req.params;
-    const { toUser, content } = req.body;
+      const { toUser, content } = req.body;
   
-    // Exemplo de busca no banco ou lógica adicional
-    console.log('Usuário autenticado:', req.userId);
-    console.log('Mensagem:', { userId, toUser, content });
+      console.log('Usuário autenticado:', req.userId);
+      console.log('Mensagem:', { toUser, content });
   
+      if (!content || !toUser) {
+        return res.status(400).json({ message: 'Conteúdo e destinatário são obrigatórios.' });
+      }
+  
+      console.log('Buscando destinatário com username:', toUser);
+      const destinatario = await User.findOne({ username: new RegExp(`^${toUser}$`, 'i') });
+  
+      if (!destinatario) {
+        console.log('Resultado da busca:', destinatario);
+        return res.status(404).json({ message: 'Destinatário não encontrado.' });
+      }
+  
+      const message = new Message({
+        content,
+        fromUser: req.userId,
+        toUser: destinatario.username
+      });
 
-    if (!content || !toUser) {
-      return res.status(400).json({ message: 'Conteúdo e destinatário são obrigatórios.' });
+      
+  
+      console.log('Mensagem criada:', message);
+  
+      await message.save();
+      res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
+  
+    } catch (err) {
+      console.error('Erro ao criar mensagem:', err);
+      res.status(500).json({ message: 'Erro interno do servidor.' });
     }
-
-
-    console.log('Buscando destinatário com username:', toUser);
-    const toUserData = await User.findOne({ name: toUser }); 
-    console.log('Resultado da busca:', toUserData);
-    if (!toUserData) {
-      return res.status(404).json({ message: 'Destinatário não encontrado.' });
-    }
-
-    const message = new Message({
-      content: content,
-      fromUser: userId,  
-      toUser: toUserData._id  
-    });
-
-    await message.save();
-    res.status(200).json({ message: 'Mensagem enviada com sucesso!' });
-  } catch (err) {
-    console.error('Erro ao criar mensagem:', err);
-    res.status(500).json({ message: 'Erro interno do servidor.' });
   }
-}
+  
 
 
 
@@ -75,6 +76,30 @@ async getMessages(req, res) {
 
 
 
+
+
+
+async searchChat(req, res) {
+  const { userId, contactId } = req.params;
+
+  try {
+    const messages = await Message.find({
+      $or: [
+        { fromUser: userId, toUser: contactId },
+        { fromUser: contactId, toUser: userId },
+      ],
+    })
+      .sort({ createdAt: 1 });
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erro ao buscar mensagens" });
+  }
 }
+}
+
+
+
 
 module.exports = new MessageController();

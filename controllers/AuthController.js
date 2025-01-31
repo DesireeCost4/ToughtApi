@@ -52,14 +52,18 @@ module.exports = class Authcontroller {
   }
 
   static async registerPost(req, res) {
-    const { name, email, password, confirmpassword } = req.body;
+    const { name, username, email, password, confirmpassword } = req.body;
+
+    if (!name || !username || !email || !password || !confirmpassword) {
+        return res.status(400).json({ error: "Todos os campos são obrigatórios!" });
+    }
 
     if (typeof password !== "string") {
       return res.status(400).json({ error: "A senha deve ser uma string!" });
     }
 
-    if (!password) {
-      return res.status(400).json({ error: "A senha é obrigatória!" });
+    if (password.length < 6) {
+      return res.status(400).json({ error: "A senha deve ter pelo menos 6 caracteres!" });
     }
 
     if (password !== confirmpassword) {
@@ -67,30 +71,33 @@ module.exports = class Authcontroller {
     }
 
     const checkIfUserExists = await User.findOne({ email: email });
-
     if (checkIfUserExists) {
       return res.status(400).json({ error: "O e-mail já está em uso!" });
     }
 
+    const checkIfUsernameExists = await User.findOne({ username: username });
+    if (checkIfUsernameExists) {
+      return res.status(400).json({ error: "O nome de usuário já está em uso!" });
+    }
+
     const hashedPassword = bcrypt.hashSync(password, 10);
 
-    const user = {
+    const user = new User({
       name,
+      username,
       email,
       password: hashedPassword,
-    };
+    });
 
     try {
-      const createdUser = await User.create(user);
-
+      const createdUser = await user.save();
       req.session.userid = createdUser.id;
-
-      console.log("Cadastro realizado com sucesso!");
 
       res.status(201).json({
         message: "Cadastro realizado com sucesso!",
         user: {
           name: createdUser.name,
+          username: createdUser.username,
           email: createdUser.email,
           id: createdUser.id,
         },
@@ -99,8 +106,7 @@ module.exports = class Authcontroller {
       console.error("Erro ao criar o usuário:", err);
       return res.status(500).json({ error: "Erro ao criar o usuário" });
     }
-  }
-
+}
   static logout(req, res) {
     try {
       console.log("Iniciando logout");

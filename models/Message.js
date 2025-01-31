@@ -1,26 +1,15 @@
-// models/Message.js
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const messageSchema = new mongoose.Schema({
-  fromUser: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Referência ao modelo de usuário
-    required: true,
+const MessageSchema = new mongoose.Schema(
+  {
+    fromUser: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    toUser: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    content: { type: String, required: true },
+    //read: { type: Boolean, default: false }, 
   },
-  toUser: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
 
-const Message = mongoose.model('Message', messageSchema);
+const Message = mongoose.model("Message", MessageSchema);
+
 module.exports = Message;
