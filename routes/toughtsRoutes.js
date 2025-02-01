@@ -13,6 +13,11 @@ router.post("/edit/:id", checkAuth, ToughtController.updateToughtSave);
 router.get("/dashboard", checkAuth, ToughtController.dashboard);
 router.get("/profile", checkAuth, ToughtController.profile);
 
+
+router.get("/profile/:username", checkAuth, ToughtController.profileUsername);
+
+
+
 router.delete("/remove/:id", checkAuth, ToughtController.removeTought);
 
 router.get("/", ToughtController.showToughts);

@@ -1,20 +1,20 @@
 const express = require("express");
 const router = express.Router();
+const checkAuth = require("../models/User");
+
+
   
-  const { getUsers } = require('../controllers/FriendController'); 
-  const { getUserProfile } = require('../controllers/FriendController');
+const { getUsers, getUserProfile, postConnect } = require('../controllers/FriendController');
+
   
 
-
-
-
-
-  router.get('/', getUsers);
+  router.get('/',getUsers);
 
   router.get('/:username', getUserProfile);
 
-  
+ router.post('/add/:id' ,postConnect)
 
+  
 
 
 

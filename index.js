@@ -16,7 +16,9 @@ const authRoutes = require("./routes/authRoutes");
 const ToughtController = require("./controllers/ToughtsController");
 const { checkAuth } = require("./helpers/auth");
 const  messageRoutes = require('./routes/messageRoutes')
-const friendRoutes = require('./routes/friendRoutes');
+const friendRoutes = require('./routes/friendRoutes'); 
+
+
 
 app.use(
   cors({

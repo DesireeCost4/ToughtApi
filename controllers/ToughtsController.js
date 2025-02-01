@@ -95,7 +95,6 @@ module.exports = class ToughtController {
       }
 
       const toughts = user.toughts || [];
-      console.log("Pensamentos do usuário:", user.toughts);
 
       const name = user.name;
       const email = user.email;
@@ -244,4 +243,36 @@ module.exports = class ToughtController {
       });
     }
   }
+
+  static async profileUsername(req, res) {
+    try {
+
+      const id = req.body.id;
+      console.log(id)
+      // Encontrar o usuário baseado no 'name' (não no 'userId')
+      const user = await User.findOne({ name: req.params.username }).populate('toughts'); 
+  
+      if (!user) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+  
+      const toughts = user.toughts || []; 
+  
+      const { name, email } = user; // Desestruturação para pegar nome e e-mail
+      const createdAt = user.createdAt ? new Date(user.createdAt).toISOString() : ''; 
+  
+      return res.json({
+        toughts, 
+        emptyToughts: toughts.length === 0, 
+        name, 
+        email,
+        createdAt, 
+      });
+    } catch (error) {
+      console.error('Erro ao carregar pensamentos:', error);
+      return res.status(500).json({ message: 'Erro ao carregar seus pensamentos.' });
+    }
+  }
+  
+
 };

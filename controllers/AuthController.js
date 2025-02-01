@@ -12,16 +12,15 @@ module.exports = class Authcontroller {
 
       const user = await User.findOne({ email });
 
-      console.log("estou no try");
+      
 
       if (user && bcrypt.compareSync(password, user.password)) {
         req.session.userid = user._id.toString();
 
         const sessionUser = req.session.userid;
-        console.log("UserId armazenado:", sessionUser);
+        console.log("UserId armazenado/ AUTH:", sessionUser);
 
-        console.log("SESSION DENTRO DO TRY: " + sessionUser);
-        console.log("esse é o req.session.userid: " + user._id);
+       
 
         const token = jwt.sign({ userId: user._id }, "seuSegredoAqui", {
           expiresIn: "1h",
