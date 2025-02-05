@@ -2,6 +2,8 @@
 const express = require('express')
 const router = express.Router();
 const User = require('../models/User')
+const Friendship = require("../models/Friendship");
+const mongoose = require('mongoose');
 
 
 async function getUsers(req, res) {
@@ -16,10 +18,12 @@ async function getUsers(req, res) {
 
   async function getUserProfile(req, res) {
     try {
+      const searchTerm = req.query.search ? String(req.query.search) : ""; // Garante que sempre seja string
+
       const users = await User.find({
         $or: [
-          { name: { $regex: req.query.search, $options: 'i' } },
-          { username: { $regex: req.query.search, $options: 'i' } }
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { username: { $regex: searchTerm, $options: 'i' } }
         ]
       });
   
@@ -80,7 +84,8 @@ async function getUsers(req, res) {
  async function acceptFriendRequest(req, res) {
   try {
     const { requestId } = req.body; 
-    const userId = req.userId; 
+    const { userId } = req.body;
+    
 
     if (!requestId) {
       return res.status(400).json({ message: "ID da solicitação não informado." });
@@ -142,28 +147,52 @@ async function getUsers(req, res) {
   }
 }
 
- async function getPendingRequests(req, res) {
-  try {
-    const pendingRequests = await Friendship.find({
-      user2: req.userId,
-      status: "pendente",
-    }).populate("user1", "name email");
 
-    return res.json({ pendingRequests });
+//OK! RETORNA SOLICITAÇÃO DE AMZD
+async function getPendingRequests(req, res) {
+  console.log("Entrando na função getPendingRequests");
+
+  try {
+    const userId = req.params.userId || req.userId;
+    
+
+    console.log("UserID:", userId);
+
+    
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "ID do usuário inválido." });
+    }
+
+    const requests = await Friendship.find({ user2: userId, status: "pendente" }) // bucando solicitação no eschema 'friends'
+      .populate("user1", "name email");
+    if (!requests || requests.length === 0) {
+      return res.status(404).json({ message: "Nenhuma solicitação pendente." });
+    }
+
+    console.log("Solicitações pendentes:", requests, userId);
+
+   
+    return res.json({ pendingRequests: requests });
   } catch (error) {
     console.error("Erro ao buscar solicitações pendentes:", error);
     return res.status(500).json({ message: "Erro ao buscar solicitações." });
   }
 }
 
+
+
  async function getFriends(req, res) {
+
+  console.log('entrei na getfriends')
   try {
     const friends = await Friendship.find({
       $or: [{ user1: req.userId }, { user2: req.userId }],
       status: "aceito",
     }).populate("user1 user2", "name email");
 
-    // Formatando a resposta para retornar apenas os amigos
+
+      
     const friendList = friends.map((friendship) => {
       return friendship.user1._id.equals(req.userId) ? friendship.user2 : friendship.user1;
     });

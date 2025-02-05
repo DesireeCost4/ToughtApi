@@ -18,13 +18,13 @@ const { getUsers, getUserProfile, postConnect, acceptFriendRequest, rejectFriend
  router.post('/add/:id' ,postConnect)
 
 
-router.post("/accept-friend-request", checkAuth, FriendController.acceptFriendRequest);
-router.post("/reject-friend-request", checkAuth, FriendController.rejectFriendRequest);
-//listagem de solicitações 
-router.get("/pending-requests",checkAuth, FriendController.getPendingRequests);
+router.post("/accept-friend-request",  FriendController.acceptFriendRequest);
+router.post("/reject-friend-request",  FriendController.rejectFriendRequest);
+//listagem de solicitações !! ALTERAR CHECKAUTH
+router.get("/pending-requests/:userId", FriendController.getPendingRequests);
 
 //listagens de amigos
-router.get("/friends", checkAuth, FriendController.getFriends);
+router.get("/friends", FriendController.getFriends);
 
   
 
