@@ -112,6 +112,14 @@ async function getUsers(req, res) {
       $pull: { friendRequests: friendship.user1 },
     });
 
+    await User.findByIdAndUpdate(friendship.user1, {
+      $addToSet: { friends: friendship.user2 }
+    });
+    
+    await User.findByIdAndUpdate(friendship.user2, {
+      $addToSet: { friends: friendship.user1 }
+    });
+
     return res.json({ message: "Solicitação de amizade aceita!" });
   } catch (error) {
     console.error("Erro ao aceitar solicitação de amizade:", error);
@@ -164,13 +172,13 @@ async function getPendingRequests(req, res) {
       return res.status(400).json({ message: "ID do usuário inválido." });
     }
 
-    const requests = await Friendship.find({ user2: userId, status: "pendente" }) // bucando solicitação no eschema 'friends'
+    const requests = await Friendship.find({ user2: userId, status: "pendente" }) 
       .populate("user1", "name email");
     if (!requests || requests.length === 0) {
       return res.status(404).json({ message: "Nenhuma solicitação pendente." });
     }
 
-    console.log("Solicitações pendentes:", requests, userId);
+    //console.log("Solicitações pendentes:", requests, userId);
 
    
     return res.json({ pendingRequests: requests });
@@ -182,27 +190,49 @@ async function getPendingRequests(req, res) {
 
 
 
- async function getFriends(req, res) {
+async function getFriends(req, res) {
 
-  console.log('entrei na getfriends')
   try {
-    const friends = await Friendship.find({
-      $or: [{ user1: req.userId }, { user2: req.userId }],
-      status: "aceito",
-    }).populate("user1 user2", "name email");
-
-
-      
-    const friendList = friends.map((friendship) => {
-      return friendship.user1._id.equals(req.userId) ? friendship.user2 : friendship.user1;
+    const { userId } = req.params; 
+    
+    const user = await User.findById(userId).populate({
+      path: 'friends',  
+      select: 'name email _id',  
     });
 
-    return res.json({ friends: friendList });
-  } catch (error) {
-    console.error("Erro ao buscar amigos:", error);
-    return res.status(500).json({ message: "Erro ao buscar amigos." });
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    const friendsList = user.friends.map(friend => {
+      return {
+        name: friend.name,
+        email: friend.email,
+        id: friend._id
+      };
+    });
+
+    res.status(200).json({
+      userName: user.name,
+      friendsList: friendsList,
+    });
+    
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: 'Erro ao buscar amigos' });
   }
-}
+  }
+  
+
+
+
+
+
+
+
+
+
+
 
   
 

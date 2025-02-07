@@ -8,24 +8,24 @@ const FriendController = require("../controllers/FriendController");
 const { getUsers, getUserProfile, postConnect, acceptFriendRequest, rejectFriendRequest,getPendingRequests,getFriends } = require('../controllers/FriendController');
 
   
-  //listagem de todos os users
+  //listagem de todos os users ok
   router.get('/',getUsers);
 
-  //acessar perfil do usuário
+  //acessar perfil do usuário ok 
   router.get('/:username', getUserProfile);
 
-  //add amigo
+  //add amigo ok 
  router.post('/add/:id' ,postConnect)
 
-
+// aceitar solcitação, ok
 router.post("/accept-friend-request",  FriendController.acceptFriendRequest);
+
 router.post("/reject-friend-request",  FriendController.rejectFriendRequest);
-//listagem de solicitações !! ALTERAR CHECKAUTH
+//listagem de solicitações !! ok 
 router.get("/pending-requests/:userId", FriendController.getPendingRequests);
 
 //listagens de amigos
-router.get("/friends", FriendController.getFriends);
-
+router.get("/friends/:userId", FriendController.getFriends);
   
 
 

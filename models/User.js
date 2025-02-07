@@ -8,7 +8,8 @@ const UserSchema = new mongoose.Schema(
     toughts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tought" }],
     sentMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }], 
     receivedMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
-    friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
+    friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }] ,
   },
   { timestamps: true }
 );
